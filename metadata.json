@@ -1,0 +1,6 @@
+{
+  "name": "ED-TECH Equipment Borrowing System",
+  "description": "ระบบยืม-คืนอุปกรณ์ ED-TECH พร้อมระบบบริหารจัดการและแดชบอร์ดติดตามคำขอ",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

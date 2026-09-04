@@ -1,0 +1,13 @@
+{
+  "projectId": "edtechstock",
+  "appId": "1:46135125038:web:8566f2905533c556b32bbf",
+  "apiKey": "AIzaSyBjYdCrPxxSmXe8RLs5e9NE2YXAJ0HYnpA",
+  "authDomain": "edtechstock.firebaseapp.com",
+  "databaseURL": "https://edtechstock-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "firestoreDatabaseId": "ai-studio-edtechequipmentb-88754315-f822-4cec-aa75-4edd33935c93",
+  "storageBucket": "edtechstock.firebasestorage.app",
+  "messagingSenderId": "46135125038",
+  "measurementId": "G-1Z26QS7KS3",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}

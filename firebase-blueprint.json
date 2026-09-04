@@ -1,0 +1,41 @@
+{
+  "entities": {
+    "equipment": {
+      "title": "Equipment",
+      "description": "Equipment items in the inventory",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "categoryEnglish": { "type": "string" },
+        "description": { "type": "string" },
+        "totalQuantity": { "type": "number" },
+        "availableQuantity": { "type": "number" },
+        "status": { "type": "string" },
+        "statusMessage": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["name", "category", "totalQuantity", "availableQuantity", "status"]
+    },
+    "borrow_requests": {
+      "title": "Borrow Requests",
+      "description": "User equipment borrow requests",
+      "type": "object",
+      "properties": {
+        "queueCode": { "type": "string" },
+        "studentId": { "type": "string" },
+        "borrowerName": { "type": "string" },
+        "department": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "purpose": { "type": "string" },
+        "items": { "type": "array" },
+        "pickupDate": { "type": "string" },
+        "returnDate": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["queueCode", "studentId", "borrowerName", "status"]
+    }
+  }
+}
