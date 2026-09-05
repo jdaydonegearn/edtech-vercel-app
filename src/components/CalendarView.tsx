@@ -20,50 +20,104 @@ export const CalendarView: React.FC = () => {
     'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'
   ];
 
-  // Currently viewing month (Fixed for demo around Aug 2026 or dynamic)
-  const [currentYear] = useState<number>(2026);
-  const [currentMonthIndex] = useState<number>(7); // 7 = August (0-indexed)
+  const formatDateStr = (year: number, monthIndex: number, day: number) =>
+    `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+  const parseDateStr = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return { year, monthIndex: month - 1, day };
+  };
+
+  const initialView = parseDateStr(selectedDate);
+  const [currentYear, setCurrentYear] = useState<number>(initialView.year);
+  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(initialView.monthIndex);
 
   const daysOfWeek = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 
-  // Days in August 2026 (starts on Saturday Aug 1)
-  // Generating a grid of 35 cells for Aug 2026 (July 26 to Sept 5)
-  const generateMonthDays = () => {
-    const days = [];
-    // Prev month padding (July 26 to July 31) -> 6 days
-    for (let d = 26; d <= 31; d++) {
+  const generateMonthDays = (year: number, monthIndex: number) => {
+    const days: {
+      dayNumber: number;
+      month: number;
+      year: number;
+      isCurrentMonth: boolean;
+      dateStr: string;
+    }[] = [];
+
+    const startWeekday = new Date(year, monthIndex, 1).getDay();
+    const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
+    const prevMonthIndex = monthIndex === 0 ? 11 : monthIndex - 1;
+    const prevYear = monthIndex === 0 ? year - 1 : year;
+    const daysInPrevMonth = new Date(prevYear, prevMonthIndex + 1, 0).getDate();
+
+    for (let i = startWeekday - 1; i >= 0; i--) {
+      const dayNumber = daysInPrevMonth - i;
       days.push({
-        dayNumber: d,
-        month: 6,
-        year: 2026,
+        dayNumber,
+        month: prevMonthIndex,
+        year: prevYear,
         isCurrentMonth: false,
-        dateStr: `2026-07-${d.toString().padStart(2, '0')}`,
+        dateStr: formatDateStr(prevYear, prevMonthIndex, dayNumber),
       });
     }
-    // Current month (August 1 to 31)
-    for (let d = 1; d <= 31; d++) {
+
+    for (let dayNumber = 1; dayNumber <= daysInMonth; dayNumber++) {
       days.push({
-        dayNumber: d,
-        month: 7,
-        year: 2026,
+        dayNumber,
+        month: monthIndex,
+        year,
         isCurrentMonth: true,
-        dateStr: `2026-08-${d.toString().padStart(2, '0')}`,
+        dateStr: formatDateStr(year, monthIndex, dayNumber),
       });
     }
-    // Next month padding (Sept 1 to Sept 5)
-    for (let d = 1; d <= 5; d++) {
+
+    const nextMonthIndex = monthIndex === 11 ? 0 : monthIndex + 1;
+    const nextYear = monthIndex === 11 ? year + 1 : year;
+    let nextDay = 1;
+    while (days.length < 42) {
       days.push({
-        dayNumber: d,
-        month: 8,
-        year: 2026,
+        dayNumber: nextDay,
+        month: nextMonthIndex,
+        year: nextYear,
         isCurrentMonth: false,
-        dateStr: `2026-09-${d.toString().padStart(2, '0')}`,
+        dateStr: formatDateStr(nextYear, nextMonthIndex, nextDay),
       });
+      nextDay += 1;
     }
+
     return days;
   };
 
-  const calendarDays = generateMonthDays();
+  const goToMonth = (year: number, monthIndex: number) => {
+    let nextYear = year;
+    let nextMonth = monthIndex;
+    if (nextMonth < 0) {
+      nextMonth = 11;
+      nextYear -= 1;
+    } else if (nextMonth > 11) {
+      nextMonth = 0;
+      nextYear += 1;
+    }
+
+    setCurrentYear(nextYear);
+    setCurrentMonthIndex(nextMonth);
+
+    const daysInTarget = new Date(nextYear, nextMonth + 1, 0).getDate();
+    const selectedDay = parseDateStr(selectedDate).day;
+    setSelectedDate(formatDateStr(nextYear, nextMonth, Math.min(selectedDay, daysInTarget)));
+  };
+
+  const goToToday = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const monthIndex = now.getMonth();
+    const day = now.getDate();
+    setCurrentYear(year);
+    setCurrentMonthIndex(monthIndex);
+    setSelectedDate(formatDateStr(year, monthIndex, day));
+  };
+
+  const calendarDays = generateMonthDays(currentYear, currentMonthIndex);
 
   // Helper: Find requests active on a specific date
   const getRequestsForDate = (dateStr: string) => {
@@ -152,19 +206,24 @@ export const CalendarView: React.FC = () => {
               </h2>
               <div className="flex items-center bg-slate-50 border border-slate-200 rounded-lg p-1">
                 <button 
-                  onClick={() => setSelectedDate('2026-08-01')}
+                  type="button"
+                  aria-label="เดือนก่อนหน้า"
+                  onClick={() => goToMonth(currentYear, currentMonthIndex - 1)}
                   className="p-1 hover:bg-slate-200 text-slate-500 hover:text-slate-900 rounded transition"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
                 <button 
-                  onClick={() => setSelectedDate('2026-08-09')}
+                  type="button"
+                  onClick={goToToday}
                   className="px-2.5 py-0.5 text-xs font-semibold text-slate-700 hover:text-slate-900 transition"
                 >
                   วันนี้
                 </button>
                 <button 
-                  onClick={() => setSelectedDate('2026-08-15')}
+                  type="button"
+                  aria-label="เดือนถัดไป"
+                  onClick={() => goToMonth(currentYear, currentMonthIndex + 1)}
                   className="p-1 hover:bg-slate-200 text-slate-500 hover:text-slate-900 rounded transition"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -206,17 +265,23 @@ export const CalendarView: React.FC = () => {
             ))}
           </div>
 
-          {/* 35-Cell Month Grid */}
+          {/* 42-Cell Month Grid */}
           <div className="grid grid-cols-7 gap-1.5 text-xs">
-            {calendarDays.map((cell, idx) => {
+            {calendarDays.map((cell) => {
               const isSelected = selectedDate === cell.dateStr;
               const reqs = getRequestsForDate(cell.dateStr);
               const maxDisplay = 3;
 
               return (
                 <div
-                  key={idx}
-                  onClick={() => setSelectedDate(cell.dateStr)}
+                  key={cell.dateStr}
+                  onClick={() => {
+                    setSelectedDate(cell.dateStr);
+                    if (!cell.isCurrentMonth) {
+                      setCurrentYear(cell.year);
+                      setCurrentMonthIndex(cell.month);
+                    }
+                  }}
                   className={`min-h-[96px] md:min-h-[105px] p-1.5 rounded-xl border transition cursor-pointer flex flex-col justify-between ${
                     isSelected
                       ? 'border-slate-900 bg-slate-100 ring-2 ring-slate-900/20 shadow-sm'
