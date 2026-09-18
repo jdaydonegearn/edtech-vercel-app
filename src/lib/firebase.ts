@@ -34,11 +34,14 @@ export const db = getFirestore(app, 'ai-studio-edtechequipmentb-88754315-f822-4c
 export const googleProvider = new GoogleAuthProvider();
 
 // กำหนดชื่อ Collections ใน Firestore
-export const EQUIPMENT_COLLECTION = 'edtech_equipment';
-export const REQUESTS_COLLECTION = 'edtech_requests';
-export const ARCHIVED_REQUESTS_COLLECTION = 'edtech_archived_requests';
-export const MEMBERS_COLLECTION = 'edtech_members';
-export const ATTENDANCE_COLLECTION = 'edtech_attendance';
+// เปลี่ยนชื่อ Collections ให้ตรงกับฐานข้อมูลจริงในรูปภาพ
+// กำหนดชื่อ Collections ให้ตรงกับ Firestore 100%
+export const EQUIPMENT_COLLECTION = 'equipment';
+export const REQUESTS_COLLECTION = 'borrow_requests';
+export const ARCHIVED_REQUESTS_COLLECTION = 'archived_borrow_requests';
+export const MEMBERS_COLLECTION = 'organization_members';
+export const ATTENDANCE_COLLECTION = 'attendance_records';
+export const EVENTS_COLLECTION = 'edtech_events';
 
 export const IS_FIREBASE_CONNECTED = true;
 

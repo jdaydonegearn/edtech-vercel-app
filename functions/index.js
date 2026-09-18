@@ -10,7 +10,7 @@ const db = getFirestore(DATABASE_ID);
 
 // 1. ดักจับเมื่อมีคำขอยืมใหม่ -> ส่งแจ้งเตือนหา Admin ทุกเครื่อง
 exports.sendNewRequestNotification = onDocumentCreated({
-  document: 'edtech_requests/{requestId}',
+  document: 'borrow_requests/{requestId}',
   database: DATABASE_ID,
 }, async (event) => {
   const snap = event.data;
@@ -51,7 +51,7 @@ exports.sendNewRequestNotification = onDocumentCreated({
 
 // 2. ดักจับเมื่อสถานะคำขอเปลี่ยน -> ส่งแจ้งเตือนหานักเรียนเจ้าของคำขอ
 exports.sendStatusUpdateNotification = onDocumentUpdated({
-  document: 'edtech_requests/{requestId}',
+  document: 'borrow_requests/{requestId}',
   database: DATABASE_ID,
 }, async (event) => {
   const change = event.data;
