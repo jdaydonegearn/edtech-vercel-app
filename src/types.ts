@@ -53,7 +53,7 @@ export interface BorrowRequest {
   studentName: string;
   studentId: string;
   phone: string;
-  purpose: string; // e.g. 'ใช้ในงานส่วนตัว (Personal Use)', 'ทำโปรเจกต์วิชา DCD201'
+  purpose: string; // e.g. 'งานส่วนตัว', 'งานของโรงเรียน', 'งานรายวิชา', 'งานของ ED-TECH'
   items: BorrowedItemSummary[];
   startDate: string; // YYYY-MM-DD
   endDate: string;   // YYYY-MM-DD
@@ -70,7 +70,38 @@ export interface BorrowRequest {
   isArchived?: boolean;
 }
 
+export const BORROW_PURPOSES = [
+  'งานส่วนตัว',
+  'งานของโรงเรียน',
+  'งานรายวิชา',
+  'งานของ ED-TECH',
+] as const;
+
+export type BorrowPurpose = (typeof BORROW_PURPOSES)[number];
+
 export type UserRole = 'user' | 'admin';
+
+export interface Member {
+  id: string;
+  name: string;
+  studentId: string;
+  phone?: string;
+  role?: 'member' | 'leader' | 'admin';
+  addedAt: string;
+}
+
+export type AttendanceStatus = 'present' | 'absent' | 'missing'; // present = มา, absent = ไม่มา, missing = ขาดการติดต่อ
+
+export interface AttendanceRecord {
+  id: string;
+  memberId: string;
+  studentId: string;
+  studentName: string;
+  date: string; // YYYY-MM-DD
+  status: AttendanceStatus;
+  reportedAt: string; // ISO string
+  note?: string;
+}
 
 export interface Announcement {
   id: string;

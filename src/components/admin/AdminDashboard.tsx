@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useBorrow } from '../../context/BorrowContext';
 import { BorrowRequest, BorrowRequestStatus, EquipmentCategory, EquipmentItem } from '../../types';
+import { AdminAttendanceView } from './AdminAttendanceView';
 
 export const AdminDashboard: React.FC = () => {
   const { 
@@ -45,7 +46,7 @@ export const AdminDashboard: React.FC = () => {
     isFirebaseConnected
   } = useBorrow();
 
-  const [adminTab, setAdminTab] = useState<'requests' | 'inventory' | 'reports'>('requests');
+  const [adminTab, setAdminTab] = useState<'requests' | 'inventory' | 'attendance' | 'reports'>('requests');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showClearModal, setShowClearModal] = useState(false);
@@ -432,6 +433,18 @@ export const AdminDashboard: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setAdminTab('attendance')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition border ${
+            adminTab === 'attendance'
+              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+              : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900 hover:bg-slate-50'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>เช็คชื่อสมาชิก</span>
+        </button>
+
+        <button
           onClick={() => setAdminTab('reports')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition border ${
             adminTab === 'reports'
@@ -486,7 +499,7 @@ export const AdminDashboard: React.FC = () => {
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="ค้นหา Tag, ชื่อ, รหัสนักศึกษา..."
+                placeholder="ค้นหา Tag, ชื่อ, รหัสนักเรียน..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-white border border-slate-200 focus:border-blue-500 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none shadow-sm"
@@ -758,6 +771,13 @@ export const AdminDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* TAB: ATTENDANCE MANAGEMENT */}
+      {adminTab === 'attendance' && (
+        <div className="space-y-6">
+          <AdminAttendanceView />
+        </div>
+      )}
+
       {/* TAB 3: REPORTS & STATS */}
       {adminTab === 'reports' && (
         <div className="space-y-6">
@@ -823,7 +843,7 @@ export const AdminDashboard: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                ข้อความ/หมายเหตุเพิ่มเติมถึงนักศึกษา
+                ข้อความ/หมายเหตุเพิ่มเติมถึงนักเรียน
               </label>
               <textarea
                 value={modalNote}

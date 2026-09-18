@@ -5,7 +5,8 @@ import {
   Camera, 
   LayoutDashboard, 
   ShoppingBag, 
-  ShieldCheck 
+  ShieldCheck,
+  UserCheck
 } from 'lucide-react';
 import { useBorrow } from '../context/BorrowContext';
 
@@ -15,10 +16,10 @@ export const MobileBottomNav: React.FC = () => {
   const totalCartCount = cart.reduce((acc, curr) => acc + curr.quantity, 0);
 
   const navItems = [
-    { id: 'calendar', label: 'ปฏิทิน', icon: Calendar },
+    { id: 'home', label: 'หน้าหลัก', icon: LayoutDashboard },
+    { id: 'attendance', label: 'เช็คชื่อ', icon: UserCheck },
     { id: 'catalog', label: 'อุปกรณ์', icon: Camera },
-    { id: 'dashboard', label: 'การยืม', icon: LayoutDashboard },
-    { id: 'news', label: 'ข่าวสาร', icon: Newspaper },
+    { id: 'dashboard', label: 'การยืม', icon: ShoppingBag },
     { id: 'admin', label: 'แอดมิน', icon: ShieldCheck },
   ];
 

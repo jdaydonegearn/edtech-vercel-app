@@ -94,7 +94,7 @@ export const Header: React.FC = () => {
         <button
           onClick={() => setShowUserRegisterModal(true)}
           className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 text-slate-800 px-3 py-1.5 rounded-xl transition text-xs group"
-          title="คลิกเพื่อแก้ไขชื่อผู้ใช้ / รหัสนักศึกษา"
+          title="คลิกเพื่อแก้ไขชื่อผู้ใช้ / รหัสนักเรียน"
         >
           <div className="w-6 h-6 rounded-lg bg-slate-200 border border-slate-300 text-slate-800 flex items-center justify-center font-bold shrink-0">
             <User className="w-3.5 h-3.5 text-slate-700" />
@@ -128,7 +128,7 @@ export const Header: React.FC = () => {
           ) : (
             <>
               <UserCheck className="w-3.5 h-3.5 text-slate-500" />
-              <span>โหมด: นักศึกษา</span>
+              <span>โหมด: นักเรียน</span>
             </>
           )}
         </button>

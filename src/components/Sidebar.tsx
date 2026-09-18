@@ -59,6 +59,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'เมนูหลัก',
       items: [
+        { id: 'home', label: 'ภาพรวมระบบ', icon: LayoutDashboard, badge: null },
+        { id: 'attendance', label: 'เช็คชื่อสมาชิก', icon: UserCheck, badge: null },
         { id: 'calendar', label: 'ปฏิทินการยืม', icon: Calendar, badge: null },
         { id: 'news', label: 'ข่าวสาร & ประกาศ', icon: Newspaper, badge: null },
       ]
@@ -67,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       title: 'บริการยืม-คืน',
       items: [
         { id: 'catalog', label: 'คลังอุปกรณ์ทั้งหมด', icon: Camera, badge: null },
-        { id: 'dashboard', label: 'การยืมของฉัน', icon: LayoutDashboard, badge: myActiveRequests > 0 ? myActiveRequests : null },
+        { id: 'dashboard', label: 'การยืมของฉัน', icon: ShoppingBag, badge: myActiveRequests > 0 ? myActiveRequests : null },
       ]
     },
     ...(isAdminLoggedIn
@@ -113,7 +115,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Sidebar Header / Branding */}
         <div className="p-4 border-b border-slate-200 flex items-center justify-between">
           <button 
-            onClick={() => handleNavClick('calendar')}
+            onClick={() => handleNavClick('home')}
             className="flex items-center gap-3 group text-left transition overflow-hidden"
           >
             <div className="bg-black text-white p-1.5 rounded-2xl shadow-sm group-hover:scale-105 transition shrink-0 border border-slate-800 w-10 h-10 flex items-center justify-center">

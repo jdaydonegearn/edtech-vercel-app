@@ -72,5 +72,7 @@ export {
 export const EQUIPMENT_COLLECTION = 'equipment';
 export const REQUESTS_COLLECTION = 'borrow_requests';
 export const ARCHIVED_REQUESTS_COLLECTION = 'archived_borrow_requests';
+export const MEMBERS_COLLECTION = 'organization_members';
+export const ATTENDANCE_COLLECTION = 'attendance_records';
 
 

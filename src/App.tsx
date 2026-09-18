@@ -6,6 +6,8 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { CalendarView } from './components/CalendarView';
 import { EquipmentCatalog } from './components/EquipmentCatalog';
 import { DashboardView } from './components/DashboardView';
+import { HomeOverview } from './components/HomeOverview';
+import { AttendanceView } from './components/AttendanceView';
 import { NewsView } from './components/NewsView';
 import { CartDrawer } from './components/CartDrawer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
@@ -48,6 +50,8 @@ const AppContent: React.FC = () => {
 
         {/* Main Content View Frame */}
         <main className="flex-1 p-4 md:p-8 pb-24 lg:pb-12 max-w-7xl w-full mx-auto animate-fade-in">
+          {activeTab === 'home' && <HomeOverview />}
+          {activeTab === 'attendance' && <AttendanceView />}
           {activeTab === 'calendar' && <CalendarView />}
           {activeTab === 'catalog' && <EquipmentCatalog />}
           {activeTab === 'dashboard' && <DashboardView />}

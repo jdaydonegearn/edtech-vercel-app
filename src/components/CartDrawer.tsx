@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Trash2, Plus, Minus, AlertCircle, ShoppingBag, CheckCircle } from 'lucide-react';
 import { useBorrow } from '../context/BorrowContext';
-import { CartItem } from '../types';
+import { BORROW_PURPOSES, CartItem } from '../types';
 
 export const CartDrawer: React.FC = () => {
   const { 
@@ -23,7 +23,7 @@ export const CartDrawer: React.FC = () => {
   const [studentName, setStudentName] = useState(initialName);
   const [studentId, setStudentId] = useState(initialStudentId);
   const [phone, setPhone] = useState(initialPhone);
-  const [purpose, setPurpose] = useState('ทำโปรเจกต์รายวิชา');
+  const [purpose, setPurpose] = useState<string>(BORROW_PURPOSES[2]);
 
   // Dynamic default dates (today to 2 days later)
   const todayStr = new Date().toISOString().split('T')[0];
@@ -232,7 +232,7 @@ export const CartDrawer: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      รหัสนักศึกษา <span className="text-blue-600">*</span>
+                      รหัสนักเรียน <span className="text-blue-600">*</span>
                     </label>
                     <input
                       type="text"
@@ -269,10 +269,11 @@ export const CartDrawer: React.FC = () => {
                     onChange={(e) => setPurpose(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition"
                   >
-                    <option value="ทำโปรเจกต์รายวิชา">ทำโปรเจกต์รายวิชา (ED-TECH Studio)</option>
-                    <option value="งานคณะ/มหาวิทยาลัย">งานคณะ/งานมหาวิทยาลัย</option>
-                    <option value="ใช้ในงานส่วนตัว (Personal Use)">ใช้ในงานส่วนตัว (Personal Use)</option>
-                    <option value="ถ่ายทำสปอตประชาสัมพันธ์">ถ่ายทำสปอตประชาสัมพันธ์</option>
+                    {BORROW_PURPOSES.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

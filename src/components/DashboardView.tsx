@@ -373,7 +373,7 @@ export const DashboardView: React.FC = () => {
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="ค้นหา Tag, ชื่อนักศึกษา..."
+              placeholder="ค้นหา Tag, ชื่อนักเรียน..."
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               className="w-full bg-white border border-slate-200 focus:border-slate-400 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none transition shadow-sm"

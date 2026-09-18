@@ -24,7 +24,7 @@ export const UserRegisterModal: React.FC = () => {
       return;
     }
     if (!studentId.trim()) {
-      setErrorMsg('กรุณากรอกรหัสนักศึกษา');
+      setErrorMsg('กรุณากรอกรหัสนักเรียน');
       return;
     }
 
@@ -59,7 +59,7 @@ export const UserRegisterModal: React.FC = () => {
           <p className="text-xs text-slate-500 leading-relaxed px-2">
             {currentUser 
               ? 'อัปเดตข้อมูลผู้ยืมสำหรับใช้ในการทำรายการส่งขอยืมอุปกรณ์'
-              : 'กรุณากรอก Username และรหัสนักศึกษาครั้งแรก เพื่อใช้ในการยืมอุปกรณ์'}
+              : 'กรุณากรอก Username และรหัสนักเรียนครั้งแรก เพื่อใช้ในการยืมอุปกรณ์'}
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export const UserRegisterModal: React.FC = () => {
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
               <CreditCard className="w-3.5 h-3.5 text-slate-600" />
-              <span>รหัสนักศึกษา <span className="text-blue-600">*</span></span>
+              <span>รหัสนักเรียน <span className="text-blue-600">*</span></span>
             </label>
             <input
               type="text"

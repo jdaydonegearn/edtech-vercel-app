@@ -6,7 +6,10 @@ import {
   Announcement, 
   UserRole, 
   BorrowRequestStatus, 
-  EquipmentCategory 
+  EquipmentCategory,
+  Member,
+  AttendanceRecord,
+  AttendanceStatus
 } from '../types';
 import { 
   db, 
@@ -15,6 +18,8 @@ import {
   EQUIPMENT_COLLECTION, 
   REQUESTS_COLLECTION, 
   ARCHIVED_REQUESTS_COLLECTION,
+  MEMBERS_COLLECTION,
+  ATTENDANCE_COLLECTION,
   IS_FIREBASE_CONNECTED,
   collection,
   doc,
@@ -22,7 +27,11 @@ import {
   deleteDoc,
   onSnapshot,
   getDocs,
-  writeBatch
+  writeBatch,
+  addDoc,
+  query,
+  where,
+  orderBy
 } from '../lib/firebase';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
@@ -62,6 +71,8 @@ interface BorrowContextType {
   borrowRequests: BorrowRequest[];
   archivedRequests: BorrowRequest[];
   myBorrowRequests: BorrowRequest[];
+  members: Member[];
+  attendanceRecords: AttendanceRecord[];
   cart: CartItem[];
   announcements: Announcement[];
   role: UserRole;
@@ -131,6 +142,13 @@ interface BorrowContextType {
     rejectionReason?: string
   ) => void;
 
+  // Attendance & Member operations
+  addMember: (member: Omit<Member, 'id' | 'addedAt'>) => Promise<void>;
+  removeMember: (memberId: string) => Promise<void>;
+  reportAttendance: (status: 'present' | 'absent', note?: string) => Promise<void>;
+  getMemberByStudentId: (studentId: string) => Member | undefined;
+  getAttendanceForDate: (date: string) => AttendanceRecord[];
+
   // Equipment Admin operations
   addEquipmentItem: (item: Omit<EquipmentItem, 'id'>) => void;
   updateEquipmentItem: (item: EquipmentItem) => void;
@@ -145,6 +163,15 @@ interface BorrowContextType {
   restoreBorrowHistory: (fromDate?: string, selectedIds?: string[]) => Promise<{ success: boolean; count: number; message: string }>;
   loginAsDemoStudent: (name?: string, studentId?: string) => void;
   loginAsDemoAdmin: () => void;
+
+  // Member & Attendance management
+  members: Member[];
+  attendanceRecords: AttendanceRecord[];
+  addMember: (memberData: Omit<Member, 'id' | 'addedAt'>) => Promise<void>;
+  removeMember: (memberId: string) => Promise<void>;
+  reportAttendance: (status: 'present' | 'absent', note?: string) => Promise<void>;
+  getMemberByStudentId: (studentId: string) => Member | undefined;
+  getAttendanceForDate: (date: string) => AttendanceRecord[];
 }
 
 const BorrowContext = createContext<BorrowContextType | undefined>(undefined);
@@ -329,6 +356,8 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
 
   const [announcements] = useState<Announcement[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
   const [role, setRoleState] = useState<UserRole>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ROLE);
@@ -726,6 +755,286 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [authUser?.uid]);
 
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
+  // Sync Members and Attendance
+  useEffect(() => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
+      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+      setMembers(membersData);
+    });
+
+    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
+      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
+      setAttendanceRecords(attendanceData);
+    });
+
+    return () => {
+      unsubMembers();
+      unsubAttendance();
+    };
+  }, []);
+
   // Synchronize Cart with Equipment changes (e.g., when Admin modifies or deletes equipment)
   useEffect(() => {
     setCart((prevCart) => {
@@ -805,7 +1114,7 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const [activeTab, setActiveTab] = useState<string>('calendar'); // 'calendar' | 'catalog' | 'dashboard' | 'news' | 'admin'
+  const [activeTab, setActiveTab] = useState<string>('home'); // 'calendar' | 'catalog' | 'dashboard' | 'news' | 'admin'
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   
   // Date states (Default today = 2026-08-09 to match screenshot august 2026 timeline)
@@ -1017,6 +1326,650 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveTab('dashboard');
 
     return { success: true, message: 'ส่งคำขอยืมอุปกรณ์เรียบร้อยแล้ว รอการอนุมัติจากแอดมิน', tagCode };
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
+  };
+
+  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newMember = {
+      ...memberData,
+      addedAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+  };
+
+  const removeMember = async (memberId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+  };
+
+  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
+    
+    const member = members.find(m => m.studentId === currentUser.studentId);
+    if (!member) return;
+
+    const today = new Date().toISOString().split('T')[0];
+    const attendanceId = `${member.id}_${today}`;
+    
+    const record: AttendanceRecord = {
+      id: attendanceId,
+      memberId: member.id,
+      studentId: member.studentId,
+      studentName: member.name,
+      date: today,
+      status: status,
+      reportedAt: new Date().toISOString(),
+      note: note
+    };
+
+    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
+    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+  };
+
+  const getMemberByStudentId = (studentId: string) => {
+    return members.find(m => m.studentId === studentId);
+  };
+
+  const getAttendanceForDate = (date: string) => {
+    return attendanceRecords.filter(r => r.date === date);
   };
 
   const cancelBorrowRequest = (requestId: string) => {
@@ -1458,6 +2411,13 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         resetToDefaults,
         clearAllBorrowHistory,
         restoreBorrowHistory,
+        members,
+        attendanceRecords,
+        addMember,
+        removeMember,
+        reportAttendance,
+        getMemberByStudentId,
+        getAttendanceForDate,
       }}
     >
       {children}
