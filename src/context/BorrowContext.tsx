@@ -9,7 +9,9 @@ import {
   EquipmentCategory,
   Member,
   AttendanceRecord,
-  AttendanceStatus
+  AttendanceStatus,
+  ClubEvent,
+  EventStatus
 } from '../types';
 import { 
   db, 
@@ -34,6 +36,8 @@ import {
 } from '../lib/firebase';
 import { where } from 'firebase/firestore';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+
+const EVENTS_COLLECTION = 'edtech_events';
 
 function sanitizeForFirestore<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
@@ -72,6 +76,7 @@ interface BorrowContextType {
   myBorrowRequests: BorrowRequest[];
   members: Member[];
   attendanceRecords: AttendanceRecord[];
+  events: ClubEvent[];
   cart: CartItem[];
   announcements: Announcement[];
   role: UserRole;
@@ -136,11 +141,15 @@ interface BorrowContextType {
     rejectionReason?: string
   ) => void;
 
+  // Attendance, Events & Member operations
   addMember: (member: Omit<Member, 'id' | 'addedAt'>) => Promise<void>;
   removeMember: (memberId: string) => Promise<void>;
-  reportAttendance: (status: 'present' | 'absent', note?: string) => Promise<void>;
+  reportAttendance: (status: 'present' | 'absent', memberId?: string, eventId?: string, note?: string) => Promise<void>;
   getMemberByStudentId: (studentId: string) => Member | undefined;
   getAttendanceForDate: (date: string) => AttendanceRecord[];
+  addEvent: (eventData: Omit<ClubEvent, 'id' | 'createdAt'>) => Promise<void>;
+  updateEventStatus: (eventId: string, status: EventStatus) => Promise<void>;
+  deleteEvent: (eventId: string) => Promise<void>;
 
   addEquipmentItem: (item: Omit<EquipmentItem, 'id'>) => void;
   updateEquipmentItem: (item: EquipmentItem) => void;
@@ -332,6 +341,7 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [announcements] = useState<Announcement[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [events, setEvents] = useState<ClubEvent[]>([]);
 
   const [role, setRoleState] = useState<UserRole>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.ROLE);
@@ -715,6 +725,7 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [authUser?.uid]);
 
+  // Sync Members and Attendance
   useEffect(() => {
     if (!IS_FIREBASE_CONNECTED || !db) return;
 
@@ -728,9 +739,16 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setAttendanceRecords(attendanceData);
     });
 
+    const unsubEvents = onSnapshot(collection(db, EVENTS_COLLECTION), (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ClubEvent));
+      eventsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setEvents(eventsData);
+    });
+
     return () => {
       unsubMembers();
       unsubAttendance();
+      unsubEvents();
     };
   }, []);
 
@@ -1024,35 +1042,79 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       addedAt: new Date().toISOString()
     };
     await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
+    triggerRealtimeNotice(`เพิ่มสมาชิก ${newMember.name} สำเร็จ`);
   };
 
   const removeMember = async (memberId: string) => {
     if (!IS_FIREBASE_CONNECTED || !db) return;
     await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
+    triggerRealtimeNotice('ลบสมาชิกเรียบร้อยแล้ว');
   };
 
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
+  const addEvent = async (eventData: Omit<ClubEvent, 'id' | 'createdAt'>) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    const newEvent: Omit<ClubEvent, 'id'> = {
+      ...eventData,
+      createdAt: new Date().toISOString()
+    };
+    await addDoc(collection(db, EVENTS_COLLECTION), sanitizeForFirestore(newEvent));
+    triggerRealtimeNotice('📢 เพิ่มกิจกรรมใหม่เรียบร้อยแล้ว');
+  };
 
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
+  const updateEventStatus = async (eventId: string, status: EventStatus) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await setDoc(doc(db, EVENTS_COLLECTION, eventId), { status }, { merge: true });
+    triggerRealtimeNotice('⚡ อัปเดตสถานะกิจกรรมแล้ว');
+  };
+
+  const deleteEvent = async (eventId: string) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+    await deleteDoc(doc(db, EVENTS_COLLECTION, eventId));
+    triggerRealtimeNotice('🗑️ ลบกิจกรรมเรียบร้อยแล้ว');
+  };
+
+  const reportAttendance = async (
+    status: 'present' | 'absent',
+    memberId?: string,
+    eventId?: string,
+    note?: string
+  ) => {
+    if (!IS_FIREBASE_CONNECTED || !db) return;
+
+    const targetMember = memberId 
+      ? members.find(m => m.id === memberId)
+      : members.find(m => m.studentId === currentUser?.studentId);
+
+    if (!targetMember) {
+      alert('ไม่พบข้อมูลสมาชิกในระบบ');
+      return;
+    }
+
+    const targetEvent = eventId ? events.find(e => e.id === eventId) : null;
+    const today = targetEvent ? targetEvent.date : new Date().toISOString().split('T')[0];
+    const attendanceId = targetEvent 
+      ? `${targetMember.id}_${targetEvent.id}` 
+      : `${targetMember.id}_${today}`;
+
     const record: AttendanceRecord = {
       id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
+      memberId: targetMember.id,
+      studentId: targetMember.studentId,
+      studentName: targetMember.name,
       date: today,
       status: status,
       reportedAt: new Date().toISOString(),
-      note: note
+      note: note || '',
+      eventId: targetEvent ? targetEvent.id : undefined,
+      eventTitle: targetEvent ? targetEvent.title : undefined,
     };
 
     await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
+    triggerRealtimeNotice(
+      targetEvent 
+        ? `✅ ลงชื่อกิจกรรม "${targetEvent.title}" เรียบร้อยแล้ว`
+        : `บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`
+    );
   };
 
   const getMemberByStudentId = (studentId: string) => {
@@ -1494,8 +1556,12 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         restoreBorrowHistory,
         members,
         attendanceRecords,
+        events,
         addMember,
         removeMember,
+        addEvent,
+        updateEventStatus,
+        deleteEvent,
         reportAttendance,
         getMemberByStudentId,
         getAttendanceForDate,

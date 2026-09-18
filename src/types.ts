@@ -101,6 +101,8 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   reportedAt: string; // ISO string
   note?: string;
+  eventId?: string;
+  eventTitle?: string;
 }
 
 export interface Announcement {
@@ -109,4 +111,16 @@ export interface Announcement {
   content: string;
   date: string;
   isImportant?: boolean;
+}
+export type EventStatus = 'upcoming' | 'ongoing' | 'completed';
+
+export interface ClubEvent {
+  id: string;
+  title: string;
+  date: string;
+  time?: string;
+  location?: string;
+  description?: string;
+  status: EventStatus; // 'upcoming' = กำลังจะเกิดขึ้น, 'ongoing' = กำลังดำเนินการ, 'completed' = จบไปแล้ว
+  createdAt: string;
 }

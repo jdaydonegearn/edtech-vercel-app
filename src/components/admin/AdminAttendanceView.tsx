@@ -1,247 +1,340 @@
 import React, { useState } from 'react';
 import { useBorrow } from '../../context/BorrowContext';
-import { Users, UserPlus, Trash2, Search, Calendar, X, Plus, CheckCircle2, XCircle } from 'lucide-react';
+import { Users, UserPlus, Trash2, Calendar, Plus, Megaphone, Clock, MapPin } from 'lucide-react';
+import { EventStatus } from '../../types';
 
 export const AdminAttendanceView: React.FC = () => {
-  const { members, attendanceRecords, addMember, removeMember } = useBorrow();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0]);
+  const { members, events, attendanceRecords, addMember, removeMember, addEvent, updateEventStatus, deleteEvent } = useBorrow();
+  const [activeSubTab, setActiveSubTab] = useState<'attendance' | 'events' | 'members'>('attendance');
+  const [selectedEventFilter, setSelectedEventFilter] = useState<string>('all');
 
-  // Modal State
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  // Modal สมาชิก
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
   const [memberName, setMemberName] = useState('');
   const [studentId, setStudentId] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Filter logic
-  const filteredMembers = members.filter(
-    (m) =>
-      (m.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (m.studentId || '').includes(searchTerm)
-  );
-
-  const selectedDateAttendance = attendanceRecords.filter((r) => r.date === dateFilter);
+  // Modal กิจกรรม
+  const [isAddEventOpen, setIsAddEventOpen] = useState(false);
+  const [eventTitle, setEventTitle] = useState('');
+  const [eventDate, setEventDate] = useState(new Date().toISOString().split('T')[0]);
+  const [eventTime, setEventTime] = useState('08:30 - 16:30');
+  const [eventLocation, setEventLocation] = useState('');
+  const [eventDesc, setEventDesc] = useState('');
+  const [eventStatus, setEventStatus] = useState<EventStatus>('upcoming');
 
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!memberName.trim() || !studentId.trim()) return;
-
-    // Check duplicate studentId
-    const exists = members.some((m) => m.studentId.trim() === studentId.trim());
-    if (exists) {
-      alert('รหัสนักเรียนนี้มีอยู่ในระบบแล้ว');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await addMember({
-        name: memberName.trim(),
-        studentId: studentId.trim(),
-      } as any);
-      setMemberName('');
-      setStudentId('');
-      setIsAddModalOpen(false);
-    } catch (err: any) {
-      alert('เกิดข้อผิดพลาดในการเพิ่มสมาชิก: ' + (err?.message || ''));
-    } finally {
-      setIsSubmitting(false);
-    }
+    await addMember({ name: memberName.trim(), studentId: studentId.trim() } as any);
+    setMemberName('');
+    setStudentId('');
+    setIsAddMemberOpen(false);
   };
 
-  const handleRemove = async (id: string, name: string) => {
-    if (window.confirm(`ยืนยันการลบสมาชิก "${name}" ออกจากระบบ?`)) {
-      await removeMember(id);
-    }
+  const handleAddEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!eventTitle.trim()) return;
+    await addEvent({
+      title: eventTitle.trim(),
+      date: eventDate,
+      time: eventTime,
+      location: eventLocation,
+      description: eventDesc,
+      status: eventStatus,
+    });
+    setEventTitle('');
+    setEventLocation('');
+    setEventDesc('');
+    setIsAddEventOpen(false);
   };
 
   return (
     <div className="space-y-6">
-      {/* Header & Actions Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-slate-200 p-5 rounded-2xl shadow-sm">
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" />
-            <span>จัดการสมาชิกกลุ่มงาน ED-TECH</span>
-            <span className="text-xs bg-blue-50 text-blue-700 border border-blue-200 px-2.5 py-0.5 rounded-full font-mono font-bold">
-              {members.length} คน
-            </span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            เพิ่ม รายชื่อสมาชิก รหัสนักเรียน และตรวจสอบประวัติการลงชื่อปฏิบัติงาน
-          </p>
+      {/* Sub Tabs */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setActiveSubTab('attendance')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
+              activeSubTab === 'attendance'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            📋 ตรวจสอบการลงชื่อ
+          </button>
+          <button
+            onClick={() => setActiveSubTab('events')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
+              activeSubTab === 'events'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            📢 จัดการกิจกรรม ({events.length})
+          </button>
+          <button
+            onClick={() => setActiveSubTab('members')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition border ${
+              activeSubTab === 'members'
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            👥 รายชื่อสมาชิก ({members.length})
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-sm transition active:scale-95"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>เพิ่มสมาชิกใหม่</span>
-        </button>
+        {activeSubTab === 'events' && (
+          <button
+            onClick={() => setIsAddEventOpen(true)}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
+          >
+            <Plus className="w-4 h-4" /> <span>ประกาศกิจกรรมใหม่</span>
+          </button>
+        )}
+
+        {activeSubTab === 'members' && (
+          <button
+            onClick={() => setIsAddMemberOpen(true)}
+            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition active:scale-95"
+          >
+            <UserPlus className="w-4 h-4" /> <span>เพิ่มสมาชิกใหม่</span>
+          </button>
+        )}
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm">
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="ค้นหาชื่อ หรือ รหัสนักเรียน..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white"
-          />
-        </div>
+      {/* VIEW 1: ตรวจสอบการลงชื่อ */}
+      {activeSubTab === 'attendance' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <span className="text-xs font-bold text-slate-700">เลือกกิจกรรมที่ต้องการดู:</span>
+            <select
+              value={selectedEventFilter}
+              onChange={(e) => setSelectedEventFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 focus:outline-none"
+            >
+              <option value="all">แสดงทุกกิจกรรม</option>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  [{ev.date}] {ev.title}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <label className="text-xs font-bold text-slate-600 flex items-center gap-1.5 whitespace-nowrap">
-            <Calendar className="w-4 h-4 text-slate-500" />
-            <span>วันที่ตรวจเช็ค:</span>
-          </label>
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-500 focus:bg-white"
-          />
-        </div>
-      </div>
-
-      {/* Members Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/75 border-b border-slate-200 text-slate-500 text-[11px] uppercase tracking-wider font-bold">
-                <th className="py-3.5 px-6">ชื่อ-นามสกุล</th>
-                <th className="py-3.5 px-6">รหัสนักเรียน</th>
-                <th className="py-3.5 px-6">สถานะวันที่ ({dateFilter})</th>
-                <th className="py-3.5 px-6 text-right">จัดการ</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredMembers.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="py-12 text-center text-slate-400">
-                    <Users className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                    <p className="font-semibold">ไม่พบรายชื่อสมาชิก</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">กดปุ่ม "เพิ่มสมาชิกใหม่" ด้านบนเพื่อลงทะเบียนนักเรียนเข้าสู่ระบบ</p>
-                  </td>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                  <th className="py-3 px-6">ชื่อ-นามสกุล</th>
+                  <th className="py-3 px-6">รหัสนักเรียน</th>
+                  <th className="py-3 px-6">กิจกรรม</th>
+                  <th className="py-3 px-6">สถานะ</th>
+                  <th className="py-3 px-6">หมายเหตุ</th>
                 </tr>
-              ) : (
-                filteredMembers.map((m) => {
-                  const record = selectedDateAttendance.find((r) => r.studentId === m.studentId || r.memberId === m.id);
-                  return (
-                    <tr key={m.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-4 px-6 font-bold text-slate-900">{m.name}</td>
-                      <td className="py-4 px-6 font-mono text-slate-600">{m.studentId}</td>
-                      <td className="py-4 px-6">
-                        {record ? (
-                          record.status === 'present' ? (
-                            <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-bold text-[11px]">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>มาเข้าร่วม</span>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {attendanceRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400">ยังไม่มีบันทึกการเช็คชื่อ</td>
+                  </tr>
+                ) : (
+                  attendanceRecords
+                    .filter((r) => selectedEventFilter === 'all' || r.eventId === selectedEventFilter)
+                    .map((rec) => (
+                      <tr key={rec.id} className="hover:bg-slate-50">
+                        <td className="py-3.5 px-6 font-bold text-slate-900">{rec.studentName}</td>
+                        <td className="py-3.5 px-6 font-mono text-slate-500">{rec.studentId}</td>
+                        <td className="py-3.5 px-6 font-medium text-slate-700">{rec.eventTitle || '-'}</td>
+                        <td className="py-3.5 px-6">
+                          {rec.status === 'present' ? (
+                            <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full font-bold text-[10px]">
+                              ✅ มาเข้าร่วม
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full font-bold text-[11px]">
-                              <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                              <span>ลา / ไม่มา</span>
+                            <span className="text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full font-bold text-[10px]">
+                              ❌ ไม่มา / ลา
                             </span>
-                          )
-                        ) : (
-                          <span className="inline-flex items-center text-slate-400 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full font-medium text-[11px]">
-                            ยังไม่ลงชื่อ
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-6 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleRemove(m.id, m.name)}
-                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 p-2 rounded-xl transition border border-transparent hover:border-rose-200"
-                          title="ลบสมาชิก"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                          )}
+                        </td>
+                        <td className="py-3.5 px-6 text-slate-500">{rec.note || '-'}</td>
+                      </tr>
+                    ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW 2: จัดการกิจกรรม */}
+      {activeSubTab === 'events' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {events.length === 0 ? (
+            <div className="col-span-full py-12 text-center text-slate-400 bg-white border border-slate-200 rounded-2xl">
+              ยังไม่มีกิจกรรมที่ประกาศ กดปุ่ม "ประกาศกิจกรรมใหม่" ด้านบนเพื่อเริ่มต้น
+            </div>
+          ) : (
+            events.map((ev) => (
+              <div key={ev.id} className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-3">
+                <div className="flex items-start justify-between">
+                  <h3 className="font-bold text-slate-900 text-sm">{ev.title}</h3>
+                  <button onClick={() => deleteEvent(ev.id)} className="text-slate-400 hover:text-rose-600 transition">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="text-xs text-slate-500 font-mono space-y-1">
+                  <p className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-blue-600" /> {ev.date}</p>
+                  {ev.time && <p className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-blue-600" /> {ev.time}</p>}
+                  {ev.location && <p className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-blue-600" /> {ev.location}</p>}
+                </div>
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-xs text-slate-500 font-bold">สถานะงาน:</span>
+                  <select
+                    value={ev.status}
+                    onChange={(e) => updateEventStatus(ev.id, e.target.value as EventStatus)}
+                    className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-slate-800"
+                  >
+                    <option value="upcoming">⏱️ กำลังจะเกิดขึ้น</option>
+                    <option value="ongoing">● กำลังเกิดขึ้น</option>
+                    <option value="completed">✓ จบไปแล้ว</option>
+                  </select>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* VIEW 3: รายชื่อสมาชิก */}
+      {activeSubTab === 'members' && (
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                <th className="py-3 px-6">ชื่อสมาชิก</th>
+                <th className="py-3 px-6">รหัสนักเรียน</th>
+                <th className="py-3 px-6 text-right">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {members.length === 0 ? (
+                <tr>
+                  <td colSpan={3} className="py-8 text-center text-slate-400">ยังไม่มีรายชื่อสมาชิก</td>
+                </tr>
+              ) : (
+                members.map((m) => (
+                  <tr key={m.id} className="hover:bg-slate-50">
+                    <td className="py-3.5 px-6 font-bold text-slate-900">{m.name}</td>
+                    <td className="py-3.5 px-6 font-mono text-slate-500">{m.studentId}</td>
+                    <td className="py-3.5 px-6 text-right">
+                      <button onClick={() => removeMember(m.id)} className="text-rose-500 hover:text-rose-700 p-1.5 transition">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
 
-      {/* Modal: เพิ่มสมาชิกใหม่ */}
-      {isAddModalOpen && (
+      {/* Modal เพิ่มสมาชิก */}
+      {isAddMemberOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl relative text-slate-800">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-blue-600" />
-                <span>เพิ่มสมาชิกใหม่</span>
-              </h3>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          <form onSubmit={handleAddMember} className="bg-white border border-slate-200 rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-slate-800">
+            <h3 className="font-bold text-base text-slate-900">เพิ่มสมาชิกใหม่</h3>
+            <input
+              type="text"
+              required
+              placeholder="ชื่อ-นามสกุล"
+              value={memberName}
+              onChange={(e) => setMemberName(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+            />
+            <input
+              type="text"
+              required
+              placeholder="รหัสนักเรียน"
+              value={studentId}
+              onChange={(e) => setStudentId(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setIsAddMemberOpen(false)} className="px-3 py-2 text-xs font-bold text-slate-500">ยกเลิก</button>
+              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">บันทึก</button>
             </div>
+          </form>
+        </div>
+      )}
 
-            <form onSubmit={handleAddMember} className="space-y-4">
+      {/* Modal ประกาศกิจกรรมใหม่ */}
+      {isAddEventOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <form onSubmit={handleAddEvent} className="bg-white border border-slate-200 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 text-slate-800">
+            <h3 className="font-bold text-base text-slate-900">ประกาศกิจกรรมใหม่</h3>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">ชื่องาน / กิจกรรม *</label>
+              <input
+                type="text"
+                required
+                placeholder="เช่น ถ่ายทอดสดพิธีไหว้ครู 2569"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  ชื่อ-นามสกุล <span className="text-rose-500">*</span>
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">วันที่ *</label>
                 <input
-                  type="text"
+                  type="date"
                   required
-                  value={memberName}
-                  onChange={(e) => setMemberName(e.target.value)}
-                  placeholder="เช่น นายธนากร ใจดี"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white shadow-sm"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900"
                 />
               </div>
-
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  รหัสนักเรียน (Student ID) <span className="text-rose-500">*</span>
-                </label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">เวลา</label>
                 <input
                   type="text"
-                  required
-                  value={studentId}
-                  onChange={(e) => setStudentId(e.target.value)}
-                  placeholder="เช่น 45102"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-500 focus:bg-white shadow-sm"
+                  placeholder="เช่น 08:30 - 16:30"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-900"
                 />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  * ใช้สำหรับล็อกอินและยืนยันตัวตนเวลาเช็คชื่อในระบบ
-                </p>
               </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white transition shadow-sm disabled:opacity-50"
-                >
-                  {isSubmitting ? 'กำลังบันทึก...' : 'บันทึกสมาชิก'}
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">สถานที่</label>
+              <input
+                type="text"
+                placeholder="เช่น หอประชุมใหญ่"
+                value={eventLocation}
+                onChange={(e) => setEventLocation(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">สถานะกิจกรรม</label>
+              <select
+                value={eventStatus}
+                onChange={(e) => setEventStatus(e.target.value as EventStatus)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900"
+              >
+                <option value="upcoming">⏱️ กำลังจะเกิดขึ้น</option>
+                <option value="ongoing">● กำลังเกิดขึ้น</option>
+                <option value="completed">✓ จบไปแล้ว</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setIsAddEventOpen(false)} className="px-3 py-2 text-xs font-bold text-slate-500">ยกเลิก</button>
+              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold">ประกาศกิจกรรม</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
