@@ -6,7 +6,7 @@ import { MobileBottomNav } from './components/MobileBottomNav';
 import { CalendarView } from './components/CalendarView';
 import { EquipmentCatalog } from './components/EquipmentCatalog';
 import { DashboardView } from './components/DashboardView';
-import { HomeOverview } from './components/HomeOverview';
+import HomeOverview from './components/HomeOverview';
 import { AttendanceView } from './components/AttendanceView';
 import { NewsView } from './components/NewsView';
 import { CartDrawer } from './components/CartDrawer';
@@ -24,6 +24,7 @@ const AppContent: React.FC = () => {
     <div className="min-h-screen bg-slate-50 text-slate-800 flex font-sans selection:bg-slate-900 selection:text-white relative">
       {/* Mandatory Firebase Auth Google Login Gate */}
       <LoginGate />
+
       {/* Realtime Toast Banner */}
       {realtimeNotice && (
         <div className="fixed top-20 right-4 sm:right-8 z-50 bg-slate-900 text-white font-extrabold text-xs px-4 py-3 rounded-2xl shadow-2xl border border-slate-700 flex items-center gap-3 animate-bounce">
@@ -31,6 +32,7 @@ const AppContent: React.FC = () => {
           <span>{realtimeNotice}</span>
         </div>
       )}
+
       {/* Sidebar Navigation */}
       <Sidebar 
         collapsed={sidebarCollapsed} 
@@ -85,4 +87,3 @@ export default function App() {
     </BorrowProvider>
   );
 }
-

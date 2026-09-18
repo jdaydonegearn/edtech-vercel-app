@@ -30,12 +30,11 @@ import {
   writeBatch,
   addDoc,
   query,
-  where,
   orderBy
 } from '../lib/firebase';
+import { where } from 'firebase/firestore';
 import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
-// Helper to strip undefined values so Firestore operations do not fail
 function sanitizeForFirestore<T>(obj: T): T {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) {
@@ -78,12 +77,11 @@ interface BorrowContextType {
   role: UserRole;
   activeTab: string;
   isCartOpen: boolean;
-  selectedDate: string; // YYYY-MM-DD
+  selectedDate: string;
   periodFilter: { startDate: string; endDate: string };
   searchQuery: string;
   selectedCategory: EquipmentCategory | 'ทั้งหมด';
 
-  // Firebase connection & Auth
   isFirebaseConnected: boolean;
   authUser: User | AppUser | null;
   authLoading: boolean;
@@ -93,7 +91,6 @@ interface BorrowContextType {
   loginWithSchoolEmail: (email: string, name?: string) => { success: boolean; message: string };
   logout: () => Promise<void>;
 
-  // User Profile & Admin Login
   currentUser: UserProfile | null;
   setCurrentUser: (profile: UserProfile) => void;
   isAdminLoggedIn: boolean;
@@ -106,7 +103,6 @@ interface BorrowContextType {
   showRestoreHistoryModal: boolean;
   setShowRestoreHistoryModal: (show: boolean) => void;
 
-  // State setters & Actions
   setRole: (role: UserRole) => void;
   toggleRole: () => void;
   setActiveTab: (tab: string) => void;
@@ -116,13 +112,11 @@ interface BorrowContextType {
   setSearchQuery: (query: string) => void;
   setSelectedCategory: (cat: EquipmentCategory | 'ทั้งหมด') => void;
 
-  // Cart operations
   addToCart: (equipmentId: string, quantity?: number) => void;
   removeFromCart: (equipmentId: string) => void;
   updateCartQuantity: (equipmentId: string, quantity: number) => void;
   clearCart: () => void;
 
-  // Request operations
   submitBorrowRequest: (data: {
     studentName: string;
     studentId: string;
@@ -142,20 +136,17 @@ interface BorrowContextType {
     rejectionReason?: string
   ) => void;
 
-  // Attendance & Member operations
   addMember: (member: Omit<Member, 'id' | 'addedAt'>) => Promise<void>;
   removeMember: (memberId: string) => Promise<void>;
   reportAttendance: (status: 'present' | 'absent', note?: string) => Promise<void>;
   getMemberByStudentId: (studentId: string) => Member | undefined;
   getAttendanceForDate: (date: string) => AttendanceRecord[];
 
-  // Equipment Admin operations
   addEquipmentItem: (item: Omit<EquipmentItem, 'id'>) => void;
   updateEquipmentItem: (item: EquipmentItem) => void;
   deleteEquipmentItem: (id: string) => Promise<void>;
   clearAllEquipment: () => void;
   
-  // Storage Reset & Sync & Restore
   realtimeNotice: string | null;
   refreshData: () => Promise<{ success: boolean; count: number; reqCount: number; error?: string }>;
   resetToDefaults: () => void;
@@ -163,15 +154,6 @@ interface BorrowContextType {
   restoreBorrowHistory: (fromDate?: string, selectedIds?: string[]) => Promise<{ success: boolean; count: number; message: string }>;
   loginAsDemoStudent: (name?: string, studentId?: string) => void;
   loginAsDemoAdmin: () => void;
-
-  // Member & Attendance management
-  members: Member[];
-  attendanceRecords: AttendanceRecord[];
-  addMember: (memberData: Omit<Member, 'id' | 'addedAt'>) => Promise<void>;
-  removeMember: (memberId: string) => Promise<void>;
-  reportAttendance: (status: 'present' | 'absent', note?: string) => Promise<void>;
-  getMemberByStudentId: (studentId: string) => Member | undefined;
-  getAttendanceForDate: (date: string) => AttendanceRecord[];
 }
 
 const BorrowContext = createContext<BorrowContextType | undefined>(undefined);
@@ -189,7 +171,6 @@ const STORAGE_KEYS = {
 
 const SYNC_CHANNEL_NAME = 'edtech_borrow_realtime_sync_v2';
 
-// List of official Administrator emails
 export const ADMIN_EMAILS: string[] = [
   '43524@visut.ac.th',
   'kachanon@visut.ac.th',
@@ -207,7 +188,6 @@ export const isAllowedSchoolEmail = (email?: string | null): boolean => {
   return lower.endsWith('@visut.ac.th') || lower === 'gudonegearn@gmail.com';
 };
 
-// Category display order definition for consistent sorting across all clients
 const CATEGORY_ORDER: Record<string, number> = {
   'กล้อง': 1,
   'เลนส์': 2,
@@ -221,12 +201,10 @@ const CATEGORY_ORDER: Record<string, number> = {
   'อื่นๆ': 10,
 };
 
-// Helper: Calculate mathematically synchronized equipment availability from raw inventory and active requests
 const calculateSynchronizedEquipment = (
   rawEquipment: EquipmentItem[],
   activeRequests: BorrowRequest[]
 ): EquipmentItem[] => {
-  // Active statuses that occupy inventory: 'pending', 'approved', 'ready', 'borrowed'
   const activeStatuses: BorrowRequestStatus[] = ['pending', 'approved', 'ready', 'borrowed'];
   const reservedCounts: Record<string, number> = {};
 
@@ -251,7 +229,6 @@ const calculateSynchronizedEquipment = (
     };
   });
 
-  // Sort predictably across all devices
   synced.sort((a, b) => {
     const catA = CATEGORY_ORDER[a.category] || 99;
     const catB = CATEGORY_ORDER[b.category] || 99;
@@ -262,7 +239,6 @@ const calculateSynchronizedEquipment = (
   return synced;
 };
 
-// Helper to broadcast changes across windows/tabs instantly
 const broadcastSync = (eq?: EquipmentItem[], reqs?: BorrowRequest[]) => {
   try {
     const bc = new BroadcastChannel(SYNC_CHANNEL_NAME);
@@ -288,7 +264,6 @@ const broadcastSync = (eq?: EquipmentItem[], reqs?: BorrowRequest[]) => {
 };
 
 export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Clear any legacy mock data from previous sessions
   useEffect(() => {
     try {
       const savedEq = localStorage.getItem(STORAGE_KEYS.EQUIPMENT);
@@ -306,7 +281,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch {}
   }, []);
 
-  // Load initial state strictly from Database or LocalStorage cache (defaults to empty array)
   const [equipment, setEquipment] = useState<EquipmentItem[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.EQUIPMENT);
     if (saved !== null) {
@@ -364,7 +338,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return (saved as UserRole) || 'user';
   });
 
-  // User Profile Registration state
   const [currentUser, setCurrentUserState] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.USER_PROFILE);
     return saved ? JSON.parse(saved) : null;
@@ -372,7 +345,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const [showUserRegisterModal, setShowUserRegisterModal] = useState<boolean>(false);
 
-  // Admin Login state
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     return localStorage.getItem(STORAGE_KEYS.ADMIN_LOGGED_IN) === 'true';
   });
@@ -380,12 +352,10 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [showAdminLoginModal, setShowAdminLoginModal] = useState<boolean>(false);
   const [showRestoreHistoryModal, setShowRestoreHistoryModal] = useState<boolean>(false);
 
-  // Firebase Auth states
   const [authUser, setAuthUser] = useState<User | AppUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [domainErrorMsg, setDomainErrorMsg] = useState<string | null>(null);
 
-  // Real-Time Notification Toast Banner
   const [realtimeNotice, setRealtimeNotice] = useState<string | null>(null);
 
   const triggerRealtimeNotice = (msg: string) => {
@@ -395,7 +365,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }, 4000);
   };
 
-  // Monitor Firebase Auth changes or restore local session when disconnected
   useEffect(() => {
     if (!IS_FIREBASE_CONNECTED || !auth) {
       const savedRole = localStorage.getItem(STORAGE_KEYS.ROLE);
@@ -423,7 +392,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (firebaseUser) {
         const email = (firebaseUser.email || '').toLowerCase();
         
-        // 1. Check school email domain or authorized admin email
         if (!isAllowedSchoolEmail(email)) {
           setDomainErrorMsg('ระบบนี้อนุญาตเฉพาะอีเมลโรงเรียน (@visut.ac.th) หรืออีเมลผู้ดูแลระบบ');
           triggerRealtimeNotice('⚠️ ระบบนี้อนุญาตเฉพาะอีเมลโรงเรียน (@visut.ac.th)');
@@ -437,7 +405,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setAuthUser(firebaseUser);
           setDomainErrorMsg(null);
 
-          // 2. Check Admin Emails: 43524@visut.ac.th, kachanon@visut.ac.th, gudonegearn@gmail.com
           if (isAuthorizedAdminEmail(email)) {
             setIsAdminLoggedIn(true);
             setRoleState('admin');
@@ -450,7 +417,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             localStorage.setItem(STORAGE_KEYS.ROLE, 'user');
           }
 
-          // Populate user profile from Google User
           const localPart = email.split('@')[0];
           setCurrentUserState((prev) => {
             const updatedProfile = {
@@ -621,7 +587,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Real-Time Firestore Global Listener for synchronized equipment availability & requests
   useEffect(() => {
     let isInitialSync = true;
     let latestRawEquipment: EquipmentItem[] = [];
@@ -652,13 +617,11 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
 
-    // Cloud Firestore Realtime Listeners
     let unsubEquipment = () => {};
     let unsubRequests = () => {};
     let unsubArchived = () => {};
 
     if (IS_FIREBASE_CONNECTED && db) {
-      // 1. Firestore Equipment Realtime Listener
       unsubEquipment = onSnapshot(
         collection(db, EQUIPMENT_COLLECTION),
         (snapshot) => {
@@ -677,7 +640,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       );
 
-      // 2. Firestore Borrow Requests Realtime Listener
       unsubRequests = onSnapshot(
         collection(db, REQUESTS_COLLECTION),
         (snapshot) => {
@@ -699,7 +661,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       );
 
-      // 3. Firestore Archived Requests Realtime Listener
       unsubArchived = onSnapshot(
         collection(db, ARCHIVED_REQUESTS_COLLECTION),
         (snapshot) => {
@@ -717,7 +678,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       );
     }
 
-    // BroadcastChannel Fallback for same-browser multi-tabs
     let bc: BroadcastChannel | null = null;
     try {
       bc = new BroadcastChannel(SYNC_CHANNEL_NAME);
@@ -755,7 +715,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, [authUser?.uid]);
 
-  // Sync Members and Attendance
   useEffect(() => {
     if (!IS_FIREBASE_CONNECTED || !db) return;
 
@@ -775,267 +734,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     };
   }, []);
 
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Sync Members and Attendance
-  useEffect(() => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-
-    const unsubMembers = onSnapshot(collection(db, MEMBERS_COLLECTION), (snapshot) => {
-      const membersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
-      setMembers(membersData);
-    });
-
-    const unsubAttendance = onSnapshot(collection(db, ATTENDANCE_COLLECTION), (snapshot) => {
-      const attendanceData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AttendanceRecord));
-      setAttendanceRecords(attendanceData);
-    });
-
-    return () => {
-      unsubMembers();
-      unsubAttendance();
-    };
-  }, []);
-
-  // Synchronize Cart with Equipment changes (e.g., when Admin modifies or deletes equipment)
   useEffect(() => {
     setCart((prevCart) => {
       let changed = false;
@@ -1044,12 +742,12 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           const currentEq = equipment.find((eq) => eq.id === item.equipmentId);
           if (!currentEq) {
             changed = true;
-            return null; // Item removed from inventory by admin
+            return null;
           }
           const validQty = Math.min(item.quantity, currentEq.availableQuantity);
           if (validQty <= 0) {
             changed = true;
-            return null; // Out of stock
+            return null;
           }
           if (currentEq !== item.equipment || validQty !== item.quantity) {
             changed = true;
@@ -1114,10 +812,9 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const [activeTab, setActiveTab] = useState<string>('home'); // 'calendar' | 'catalog' | 'dashboard' | 'news' | 'admin'
+  const [activeTab, setActiveTab] = useState<string>('home');
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   
-  // Date states (Default today = 2026-08-09 to match screenshot august 2026 timeline)
   const [selectedDate, setSelectedDate] = useState<string>('2026-08-09');
   const [periodFilter, setPeriodFilter] = useState<{ startDate: string; endDate: string }>({
     startDate: '2026-08-09',
@@ -1127,7 +824,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<EquipmentCategory | 'ทั้งหมด'>('ทั้งหมด');
 
-  // Save to LocalStorage whenever state changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.EQUIPMENT, JSON.stringify(equipment));
   }, [equipment]);
@@ -1176,7 +872,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveTab(tab);
   };
 
-  // Cart Management
   const addToCart = (equipmentId: string, quantity = 1) => {
     const targetEq = equipment.find((e) => e.id === equipmentId);
     if (!targetEq || targetEq.availableQuantity < 1 || targetEq.status !== 'available') {
@@ -1194,7 +889,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         return [...prev, { equipmentId, equipment: targetEq, quantity: Math.min(quantity, targetEq.availableQuantity) }];
       }
     });
-    // Do not open cart modal automatically on add
   };
 
   const removeFromCart = (equipmentId: string) => {
@@ -1222,7 +916,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCart([]);
   };
 
-  // Generate Tag code like 'ED-TECH-U-XXXX' or 'ED-TECH-P-XXXX'
   const generateTagCode = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let code = 'ED-TECH-U-';
@@ -1232,7 +925,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return code;
   };
 
-  // Submit Request & Deduct Available Quantity from Inventory
   const submitBorrowRequest = (data: {
     studentName: string;
     studentId: string;
@@ -1246,7 +938,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, message: 'กระเป๋าอุปกรณ์ว่างเปล่า กรุณาเลือกอุปกรณ์ก่อน' };
     }
 
-    // Validate date max 3 days rule
     const start = new Date(data.startDate);
     const end = new Date(data.endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
@@ -1280,7 +971,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       isArchived: false,
     };
 
-    // Deduct available quantity for each equipment item in cart
     const updatedEquipment = equipment.map((eq) => {
       const cartItem = cart.find((c) => c.equipmentId === eq.id);
       if (cartItem) {
@@ -1304,7 +994,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     broadcastSync(updatedEquipment, updatedRequests);
 
-    // Persist to Cloud Firestore if connected
     if (IS_FIREBASE_CONNECTED && db) {
       (async () => {
         try {
@@ -1326,604 +1015,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveTab('dashboard');
 
     return { success: true, message: 'ส่งคำขอยืมอุปกรณ์เรียบร้อยแล้ว รอการอนุมัติจากแอดมิน', tagCode };
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
-  };
-
-  const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    const newMember = {
-      ...memberData,
-      addedAt: new Date().toISOString()
-    };
-    await addDoc(collection(db, MEMBERS_COLLECTION), sanitizeForFirestore(newMember));
-  };
-
-  const removeMember = async (memberId: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db) return;
-    await deleteDoc(doc(db, MEMBERS_COLLECTION, memberId));
-  };
-
-  const reportAttendance = async (status: 'present' | 'absent', note?: string) => {
-    if (!IS_FIREBASE_CONNECTED || !db || !currentUser || !authUser) return;
-    
-    const member = members.find(m => m.studentId === currentUser.studentId);
-    if (!member) return;
-
-    const today = new Date().toISOString().split('T')[0];
-    const attendanceId = `${member.id}_${today}`;
-    
-    const record: AttendanceRecord = {
-      id: attendanceId,
-      memberId: member.id,
-      studentId: member.studentId,
-      studentName: member.name,
-      date: today,
-      status: status,
-      reportedAt: new Date().toISOString(),
-      note: note
-    };
-
-    await setDoc(doc(db, ATTENDANCE_COLLECTION, attendanceId), sanitizeForFirestore(record));
-    triggerRealtimeNotice(`บันทึกการเช็คชื่อเรียบร้อยแล้ว: ${status === 'present' ? 'มา' : 'ไม่มา'}`);
-  };
-
-  const getMemberByStudentId = (studentId: string) => {
-    return members.find(m => m.studentId === studentId);
-  };
-
-  const getAttendanceForDate = (date: string) => {
-    return attendanceRecords.filter(r => r.date === date);
   };
 
   const addMember = async (memberData: Omit<Member, 'id' | 'addedAt'>) => {
@@ -1996,7 +1087,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const isRestoring = activeStatuses.includes(oldStatus) && restoringStatuses.includes(newStatus);
       const isReactivating = restoringStatuses.includes(oldStatus) && activeStatuses.includes(newStatus);
 
-      // Handle Equipment quantities
       setEquipment((prevEquipment) => {
         let updatedEq = prevEquipment;
         if (isRestoring) {
@@ -2056,7 +1146,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return updatedReqs;
     });
 
-    // Cloud Firestore sync safely without crashing
     if (IS_FIREBASE_CONNECTED && db && targetUpdatedReq) {
       const cleanReq = sanitizeForFirestore(targetUpdatedReq);
       try {
@@ -2071,7 +1160,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Equipment Management
   const addEquipmentItem = async (itemData: Omit<EquipmentItem, 'id'>) => {
     const newId = `eq-${Date.now()}`;
     const newItem: EquipmentItem = {
@@ -2169,7 +1257,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const refreshData = async (): Promise<{ success: boolean; count: number; reqCount: number; error?: string }> => {
-    // 1. Try Cloud Firestore
     if (IS_FIREBASE_CONNECTED && db) {
       try {
         const eqSnap = await getDocs(collection(db, EQUIPMENT_COLLECTION));
@@ -2205,7 +1292,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     }
 
-    // 2. Fallback: Load from LocalStorage
     try {
       const savedEq = localStorage.getItem(STORAGE_KEYS.EQUIPMENT);
       const loadedEq: EquipmentItem[] = savedEq ? JSON.parse(savedEq) : [];
@@ -2223,7 +1309,6 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  // Calculate current user's own requests (restricted view)
   const myBorrowRequests = borrowRequests.filter((r) => {
     const userEmail = (authUser?.email || '').toLowerCase().trim();
     const reqEmail = (r.userEmail || '').toLowerCase().trim();
@@ -2255,14 +1340,12 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const combinedArchived = [...newlyArchived, ...archivedRequests];
 
-    // 1. Update React States & LocalStorage
     setBorrowRequests(remainingRequests);
     setArchivedRequests(combinedArchived);
     localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(remainingRequests));
     localStorage.setItem(STORAGE_KEYS.ARCHIVED_REQUESTS, JSON.stringify(combinedArchived));
     broadcastSync(equipment, remainingRequests);
 
-    // 2. Persist to Cloud Firestore: Move from REQUESTS to ARCHIVED
     if (IS_FIREBASE_CONNECTED && db) {
       try {
         for (const req of newlyArchived) {
@@ -2306,14 +1389,12 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
     const nextArchived = archivedRequests.filter((r) => !restoredIds.has(r.id));
 
-    // Update Local States
     setBorrowRequests(nextActiveRequests);
     setArchivedRequests(nextArchived);
     localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(nextActiveRequests));
     localStorage.setItem(STORAGE_KEYS.ARCHIVED_REQUESTS, JSON.stringify(nextArchived));
     broadcastSync(equipment, nextActiveRequests);
 
-    // Persist to Cloud Firestore: Move back from ARCHIVED to ACTIVE
     if (IS_FIREBASE_CONNECTED && db) {
       try {
         for (const req of unarchivedList) {

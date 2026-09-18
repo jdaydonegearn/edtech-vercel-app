@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { useBorrow } from '../../context/BorrowContext';
 import { BorrowRequest, BorrowRequestStatus, EquipmentCategory, EquipmentItem } from '../../types';
-import { AdminAttendanceView } from './AdminAttendanceView';
+import  AdminAttendanceView  from './AdminAttendanceView';
 
 export const AdminDashboard: React.FC = () => {
   const { 
