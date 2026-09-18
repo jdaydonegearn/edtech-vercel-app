@@ -1,3 +1,5 @@
+import { useRef } from 'react'; // ตรวจสอบว่าใน import React มี useRef หรือยัง
+import { playNotificationSound, showSystemNotification, requestNotificationPermission } from '../lib/notification';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   EquipmentItem, 
@@ -367,7 +369,15 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [domainErrorMsg, setDomainErrorMsg] = useState<string | null>(null);
 
   const [realtimeNotice, setRealtimeNotice] = useState<string | null>(null);
+const prevRequestsRef = useRef<BorrowRequest[]>([]);
+  const isFirstLoadRef = useRef<boolean>(true);
 
+  // ขอสิทธิ์แจ้งเตือนเบราว์เซอร์อัตโนมัติเมื่อผู้ใช้ล็อกอิน
+  useEffect(() => {
+    if (authUser) {
+      requestNotificationPermission();
+    }
+  }, [authUser]);
   const triggerRealtimeNotice = (msg: string) => {
     setRealtimeNotice(msg);
     setTimeout(() => {
@@ -664,6 +674,60 @@ export const BorrowProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           firestoreReqs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           latestRequests = firestoreReqs;
           syncAndPublish(latestRawEquipment, firestoreReqs, 'requests');
+          // ระบบตรวจจับเพื่อส่งแจ้งเตือน (ข้ามการโหลดข้อมูลรอบแรกสุด)
+          if (!isFirstLoadRef.current) {
+            const prevReqs = prevRequestsRef.current;
+
+            // 1. สำหรับแอดมิน: ตรวจพบคำขอยืมใหม่ที่ส่งเข้ามา (สถานะ pending)
+            if (isAdminLoggedIn || role === 'admin') {
+              const newIncomingReq = firestoreReqs.find(
+                (curr) => !prevReqs.some((prev) => prev.id === curr.id) && curr.status === 'pending'
+              );
+              if (newIncomingReq) {
+                showSystemNotification(
+                  '🔔 มีคำขอยืมอุปกรณ์ใหม่!',
+                  `จาก ${newIncomingReq.studentName} (${newIncomingReq.tagCode})`
+                );
+              }
+            }
+
+            // 2. สำหรับนักเรียน: ตรวจจับว่าคำขอของตัวเองถูกอนุมัติหรือปฏิเสธ
+            const currentUid = authUser?.uid;
+            const currentEmail = (authUser?.email || '').toLowerCase();
+            const currentStdId = currentUser?.studentId;
+
+            firestoreReqs.forEach((curr) => {
+              const prev = prevReqs.find((p) => p.id === curr.id);
+              // ต้องเป็นคำขอของตัวเอง
+              const isMine = 
+                (curr.userId && curr.userId === currentUid) ||
+                (curr.userEmail && curr.userEmail.toLowerCase() === currentEmail) ||
+                (curr.studentId && curr.studentId === currentStdId);
+
+              if (isMine && prev && prev.status !== curr.status) {
+                if (curr.status === 'approved') {
+                  showSystemNotification(
+                    '✅ คำขอยืมได้รับการอนุมัติแล้ว!',
+                    `รหัส Tag: ${curr.tagCode} สามารถติดต่อรับอุปกรณ์ตามวันเวลาที่กำหนด`
+                  );
+                } else if (curr.status === 'rejected') {
+                  showSystemNotification(
+                    '❌ คำขอยืมไม่ผ่านการอนุมัติ',
+                    `รหัส Tag: ${curr.tagCode} เหตุผล: ${curr.rejectionReason || 'อุปกรณ์ไม่พร้อมใช้งาน'}`
+                  );
+                } else if (curr.status === 'ready') {
+                  showSystemNotification(
+                    '📦 อุปกรณ์พร้อมรับแล้ว',
+                    `รหัส Tag: ${curr.tagCode} แอดมินเตรียมอุปกรณ์เรียบร้อยแล้ว`
+                  );
+                }
+              }
+            });
+          }
+
+          // อัปเดตรายการเดิมเก็บไว้เปรียบเทียบในรอบถัดไป
+          prevRequestsRef.current = firestoreReqs;
+          isFirstLoadRef.current = false;
           isInitialSync = false;
         },
         (err) => {
