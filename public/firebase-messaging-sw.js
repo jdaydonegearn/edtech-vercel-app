@@ -15,11 +15,17 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// จัดการข้อความ Push Notification ที่ยิงมาตอนปิดแอปหรือล็อกหน้าจอ
+// ถ้า Payload มี notification object ตัวเบราว์เซอร์จะแสดงผลเองอัตโนมัติอยู่แล้ว
+// เราดักจับเฉพาะกรณีเป็น Data Message หรือต้องการ Custom เพิ่มเติม
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title || 'ED-TECH แจ้งเตือน';
+  // หากมี notification มากับ payload ไม่ต้องสั่ง showNotification ซ้ำ
+  if (payload.notification) {
+    return;
+  }
+
+  const title = payload.data?.title || 'ED-TECH แจ้งเตือน';
   const options = {
-    body: payload.notification?.body || '',
+    body: payload.data?.body || '',
     icon: '/logo.png',
     badge: '/logo.png',
     vibrate: [200, 100, 200],
