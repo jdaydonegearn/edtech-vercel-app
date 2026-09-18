@@ -1,20 +1,21 @@
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
 import { app, db, doc, setDoc } from './firebase';
 
-// นำ VAPID Key ที่ได้จากขั้นตอนที่ 1 มาใส่ตรงนี้
+// ⚠️ สำคัญมาก: นำ Key pair จาก Firebase Console -> Project Settings -> Cloud Messaging -> Web Push certificates มาใส่ตรงนี้
 const VAPID_KEY = 'BPs-vFUBoL88KhjYoiNOHHY2MyojGj-ocLM-GFm_PQF68W0CdX5ABsq6hGLCfBRg6PmPfU5Vc5-lEixq3ZHodtU';
 
 export const registerPushNotification = async (userId: string, role: 'admin' | 'user') => {
   try {
     const supported = await isSupported();
     if (!supported) {
-      console.warn('เบราว์เซอร์นี้ไม่รองรับ FCM Push Notification');
+      alert('อุปกรณ์หรือเบราว์เซอร์นี้ไม่รองรับ Push Notification');
       return null;
     }
 
-    // 1. ขอสิทธิ์เบราว์เซอร์
+    // 1. ขอสิทธิ์แจ้งเตือน
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
+      alert('คุณไม่ได้กดยินยอม (Allow) ให้ส่งการแจ้งเตือน');
       return null;
     }
 
@@ -29,20 +30,27 @@ export const registerPushNotification = async (userId: string, role: 'admin' | '
       serviceWorkerRegistration: registration,
     });
 
-    if (token) {
-      // 4. บันทึก Token ลง Firestore ในคอลเลกชัน edtech_fcm_tokens
-      await setDoc(doc(db, 'edtech_fcm_tokens', token), {
-        token,
-        userId,
-        role,
-        updatedAt: new Date().toISOString(),
-        device: navigator.userAgent,
-      }, { merge: true });
-
-      return token;
+    if (!token) {
+      alert('ไม่สามารถสร้าง FCM Token ได้ กรุณาตรวจสอบ VAPID Key');
+      return null;
     }
-  } catch (error) {
-    console.error('FCM Token Registration Error:', error);
+
+    console.log('FCM Token Generated:', token);
+
+    // 4. บันทึก Token ลง Firestore (ใช้ db ที่ชี้ไป Database ID ที่ถูกต้อง)
+    await setDoc(doc(db, 'edtech_fcm_tokens', token), {
+      token: token,
+      userId: userId || 'anonymous',
+      role: role || 'user',
+      updatedAt: new Date().toISOString(),
+      userAgent: navigator.userAgent,
+    }, { merge: true });
+
+    alert('✅ ลงทะเบียนรับการแจ้งเตือนบนอุปกรณ์นี้สำเร็จ!');
+    return token;
+  } catch (error: any) {
+    console.error('FCM Registration Error:', error);
+    alert('เกิดข้อผิดพลาดในการลงทะเบียน: ' + (error?.message || error));
+    return null;
   }
-  return null;
 };
