@@ -1,5 +1,3 @@
-import { NotificationBell } from './components/NotificationBell';
-// (หากแก้ใน src/components/Navbar.tsx ให้ใช้: import { NotificationBell } from './NotificationBell';)
 import React, { useState } from 'react';
 import { BorrowProvider, useBorrow } from './context/BorrowContext';
 import { Sidebar } from './components/Sidebar';
@@ -16,6 +14,7 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { AdminLoginModal } from './components/modals/AdminLoginModal';
 import { RestoreHistoryModal } from './components/modals/RestoreHistoryModal';
 import { LoginGate } from './components/LoginGate';
+import { NotificationBell } from './components/NotificationBell';
 
 const AppContent: React.FC = () => {
   const { activeTab, realtimeNotice } = useBorrow();
@@ -52,8 +51,22 @@ const AppContent: React.FC = () => {
         {/* Top Header Command Bar */}
         <TopBar onOpenMobileSidebar={() => setMobileSidebarOpen(true)} />
 
+        {/* แถบแจ้งเตือนระดับระบบ (แสดงทั้งคอมและมือถือ) */}
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2.5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+            </span>
+            <span className="text-xs font-semibold">ระบบแจ้งเตือนข้อความสถานะยืม-คืนอุปกรณ์</span>
+          </div>
+          <div>
+            <NotificationBell />
+          </div>
+        </div>
+
         {/* Main Content View Frame */}
-        <main className="flex-1 p-4 md:p-8 pb-24 lg:pb-12 max-w-7xl w-full mx-auto animate-fade-in">
+        <main className="flex-1 p-4 md:p-8 pb-28 lg:pb-12 max-w-7xl w-full mx-auto animate-fade-in">
           {activeTab === 'home' && <HomeOverview />}
           {activeTab === 'attendance' && <AttendanceView />}
           {activeTab === 'calendar' && <CalendarView />}
@@ -67,6 +80,11 @@ const AppContent: React.FC = () => {
         <footer className="border-t border-slate-200 py-6 px-4 text-center text-xs text-slate-500 bg-white">
           <p>© 2026 ED-TECH Equipment Management System. โรงเรียนวิสุทธรังษี</p>
         </footer>
+      </div>
+
+      {/* ปุ่มลอยแจ้งเตือนบนจอมือถือ (Floating Quick Action) */}
+      <div className="fixed bottom-20 right-4 z-40 lg:hidden shadow-xl rounded-xl">
+        <NotificationBell />
       </div>
 
       {/* Mobile Floating Bottom Bar */}
