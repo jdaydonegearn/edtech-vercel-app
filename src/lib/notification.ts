@@ -1,4 +1,4 @@
-// สังเคราะห์เสียง Ding แจ้งเตือนผ่าน Web Audio API โดยไม่ต้องพึ่งไฟล์ mp3 ภายนอก
+// เล่นเสียงแจ้งเตือน
 export const playNotificationSound = () => {
   try {
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -8,7 +8,6 @@ export const playNotificationSound = () => {
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    // โน้ตคู่เสียงใส (D5 -> A5)
     osc.frequency.setValueAtTime(587.33, ctx.currentTime);
     osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
 
@@ -25,27 +24,57 @@ export const playNotificationSound = () => {
   }
 };
 
-// ขอสิทธิ์ส่ง Notification จากเบราว์เซอร์
+// ลงทะเบียน Service Worker และขอสิทธิ์รับการแจ้งเตือน
 export const requestNotificationPermission = async () => {
-  if (typeof window !== 'undefined' && 'Notification' in window) {
+  if (typeof window === 'undefined') return;
+
+  // 1. ลงทะเบียน Service Worker ในเบราว์เซอร์
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('/sw.js');
+    } catch (err) {
+      console.warn('ServiceWorker registration failed:', err);
+    }
+  }
+
+  // 2. ขอสิทธิ์แสดง Notification
+  if ('Notification' in window) {
     if (Notification.permission === 'default') {
       await Notification.requestPermission();
     }
   }
 };
 
-// สั่งแสดงแถบแจ้งเตือนของระบบ
-export const showSystemNotification = (title: string, body: string) => {
+// แสดงแจ้งเตือนบนมือถือและคอมพิวเตอร์
+export const showSystemNotification = async (title: string, body: string) => {
   playNotificationSound();
 
-  if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-    try {
-      new Notification(title, {
-        body,
-        icon: '/favicon.ico',
-      });
-    } catch (err) {
-      console.warn('Notification display error:', err);
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+
+  const options: NotificationOptions = {
+    body,
+    icon: '/logo.png', // เปลี่ยนเป็นรูปโลโก้ของคุณ
+    badge: '/logo.png',
+    vibrate: [200, 100, 200], // สั่งให้มือถือสั่นเตือน
+    tag: 'edtech-alert',
+  } as any;
+
+  try {
+    // ส่งผ่าน Service Worker (บังคับสำหรับ Android และ iOS PWA)
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, options);
+      return;
     }
+  } catch (swErr) {
+    console.warn('ServiceWorker showNotification failed, falling back:', swErr);
+  }
+
+  // Fallback สำหรับคอมพิวเตอร์ทั่วไป
+  try {
+    new Notification(title, options);
+  } catch (err) {
+    console.warn('Notification constructor error:', err);
   }
 };
