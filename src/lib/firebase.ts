@@ -1,28 +1,25 @@
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, Auth } from 'firebase/auth';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { 
   getFirestore, 
   collection, 
   doc, 
   setDoc, 
-  addDoc, 
-  updateDoc, 
   deleteDoc, 
   onSnapshot, 
-  getDocs,
-  writeBatch,
+  getDocs, 
+  writeBatch, 
+  addDoc, 
   query, 
   orderBy,
-  Firestore
+  where 
 } from 'firebase/firestore';
-import firebaseConfigJson from '../../firebase-applet-config.json';
 
-// Connection toggle: Enabled with the edtechstock project
-export const IS_FIREBASE_CONNECTED = true;
-
-export const firebaseConfig = {
+// กำหนดค่า Firebase Config ของ edtechstock
+const firebaseConfig = {
   apiKey: "AIzaSyBjYdCrPxxSmXe8RLs5e9NE2YXAJ0HYnpA",
   authDomain: "edtechstock.firebaseapp.com",
+  databaseURL: "https://edtechstock-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "edtechstock",
   storageBucket: "edtechstock.firebasestorage.app",
   messagingSenderId: "46135125038",
@@ -30,49 +27,32 @@ export const firebaseConfig = {
   measurementId: "G-1Z26QS7KS3"
 };
 
-let app: FirebaseApp | null = null;
-let db: Firestore | null = null;
-let auth: Auth | null = null;
-let googleProvider: GoogleAuthProvider | null = null;
+// ตรวจสอบการ Initialize เพื่อป้องกันการสร้างซ้ำ
+export const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+export const auth = getAuth(app);
+export const db = getFirestore(app, 'ai-studio-edtechequipmentb-88754315-f822-4cec-aa75-4edd33935c93');
+export const googleProvider = new GoogleAuthProvider();
 
-if (IS_FIREBASE_CONNECTED) {
-  try {
-    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    
-    // Cloud Firestore instance (Connected to specific Firestore database)
-    const databaseId = firebaseConfigJson.firestoreDatabaseId || 'ai-studio-edtechequipmentb-88754315-f822-4cec-aa75-4edd33935c93';
-    db = getFirestore(app, databaseId);
+// กำหนดชื่อ Collections ใน Firestore
+export const EQUIPMENT_COLLECTION = 'edtech_equipment';
+export const REQUESTS_COLLECTION = 'edtech_requests';
+export const ARCHIVED_REQUESTS_COLLECTION = 'edtech_archived_requests';
+export const MEMBERS_COLLECTION = 'edtech_members';
+export const ATTENDANCE_COLLECTION = 'edtech_attendance';
 
-    auth = getAuth(app);
-    googleProvider = new GoogleAuthProvider();
-    googleProvider.setCustomParameters({ prompt: 'select_account' });
-  } catch (err) {
-    console.warn('Firebase initialization error:', err);
-  }
-}
+export const IS_FIREBASE_CONNECTED = true;
 
-export { 
-  app, 
-  db, 
-  auth, 
-  googleProvider,
+// ส่งออกฟังก์ชัน Firestore ให้หน้าอื่นดึงไปใช้งานได้ทันที
+export {
   collection,
   doc,
   setDoc,
-  addDoc,
-  updateDoc,
   deleteDoc,
   onSnapshot,
   getDocs,
   writeBatch,
+  addDoc,
   query,
-  orderBy
+  orderBy,
+  where
 };
-
-export const EQUIPMENT_COLLECTION = 'equipment';
-export const REQUESTS_COLLECTION = 'borrow_requests';
-export const ARCHIVED_REQUESTS_COLLECTION = 'archived_borrow_requests';
-export const MEMBERS_COLLECTION = 'organization_members';
-export const ATTENDANCE_COLLECTION = 'attendance_records';
-
-
