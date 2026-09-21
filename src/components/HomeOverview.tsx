@@ -97,6 +97,9 @@ export const HomeOverview: React.FC = () => {
         </div>
       </section>
 
+      {/* ตารางเวรตอนเช้าประจำวัน */}
+      <MorningRosterCard />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {stats.map((stat, idx) => (
