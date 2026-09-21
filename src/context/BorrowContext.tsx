@@ -183,7 +183,7 @@ const STORAGE_KEYS = {
 const SYNC_CHANNEL_NAME = 'edtech_borrow_realtime_sync_v2';
 
 export const ADMIN_EMAILS: string[] = [
-  '43524@visut.ac.th',
+  
   'kachanon@visut.ac.th',
   'gudonegearn@gmail.com',
 ];
