@@ -29,8 +29,10 @@ export const CalendarView: React.FC = () => {
   };
 
   const initialView = parseDateStr(selectedDate);
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentYear, setCurrentYear] = useState<number>(initialView.year);
   const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(initialView.monthIndex);
+  
 
   const daysOfWeek = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'];
 

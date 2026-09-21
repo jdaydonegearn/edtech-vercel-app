@@ -278,29 +278,43 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </div>
 
-            {/* Role Badge & Logout Button */}
+            {/* Role Badge & View Mode Toggle */}
             {(!collapsed || mobileOpen) && (
-              <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-1.5">
-                {isAdminLoggedIn ? (
-                  <div className="flex-1 flex items-center gap-1.5 py-1 px-2 rounded-lg text-[10px] font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">Admin ({authUser?.email ? authUser.email.split('@')[0] : 'ผู้ดูแลระบบ'})</span>
-                  </div>
-                ) : (
-                  <div className="flex-1 flex items-center gap-1.5 py-1 px-2 rounded-lg text-[10px] font-extrabold bg-slate-200 text-slate-800 border border-slate-300">
-                    <User className="w-3.5 h-3.5 text-slate-600 shrink-0" />
-                    <span className="truncate">นักเรียน/ครู</span>
-                  </div>
-                )}
+              <div className="pt-2 border-t border-slate-200 space-y-2">
+                <div className="flex items-center justify-between gap-1.5">
+                  {isAdminLoggedIn ? (
+                    <button
+                      type="button"
+                      onClick={toggleRole}
+                      title="คลิกเพื่อสลับมุมมองระหว่าง Admin กับ นักเรียน"
+                      className={`flex-1 flex items-center justify-between py-1 px-2 rounded-lg text-[10px] font-extrabold border transition ${
+                        role === 'admin' 
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 truncate">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span>โหมด: {role === 'admin' ? 'Admin' : 'มุมมองนักเรียน'}</span>
+                      </div>
+                      <span className="text-[9px] underline">สลับ</span>
+                    </button>
+                  ) : (
+                    <div className="flex-1 flex items-center gap-1.5 py-1 px-2 rounded-lg text-[10px] font-extrabold bg-slate-200 text-slate-800 border border-slate-300">
+                      <User className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                      <span className="truncate">นักเรียน/ครู</span>
+                    </div>
+                  )}
 
-                <button
-                  onClick={logout}
-                  className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 transition shrink-0 flex items-center gap-1 text-[10px] font-bold"
-                  title="ออกจากระบบ"
-                >
-                  <LogOut className="w-3.5 h-3.5 text-red-600" />
-                  <span className="hidden sm:inline">Logout</span>
-                </button>
+                  <button
+                    onClick={logout}
+                    className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 transition shrink-0 flex items-center gap-1 text-[10px] font-bold"
+                    title="ออกจากระบบ Google"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-red-600" />
+                    <span className="hidden sm:inline">ออก</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
