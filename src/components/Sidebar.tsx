@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react';
 import React, { useState } from 'react';
 import { 
   Calendar, 
@@ -15,7 +16,8 @@ import {
   PanelLeftOpen, 
   ChevronRight,
   Radio,
-  ShoppingBag
+  ShoppingBag,
+  TrendingUp
 } from 'lucide-react';
 import { useBorrow } from '../context/BorrowContext';
 import { EdTechEmblem } from './EdTechLogo';
@@ -61,8 +63,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       items: [
         { id: 'home', label: 'ภาพรวมระบบ', icon: LayoutDashboard, badge: null },
         { id: 'attendance', label: 'เช็คชื่อสมาชิก', icon: UserCheck, badge: null },
+        { id: 'kpi', label: 'ประเมินผล KPI', icon: TrendingUp, badge: null },
         { id: 'calendar', label: 'ปฏิทินการยืม', icon: Calendar, badge: null },
         { id: 'news', label: 'ข่าวสาร & ประกาศ', icon: Newspaper, badge: null },
+        { id: 'org', label: 'ผังองค์กรสมาชิก', icon: Users, badge: null },
       ]
     },
     {

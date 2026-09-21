@@ -1,3 +1,4 @@
+import { OrgChartView } from './components/OrgChartView';
 import React, { useState } from 'react';
 import { BorrowProvider, useBorrow } from './context/BorrowContext';
 import { Sidebar } from './components/Sidebar';
@@ -15,6 +16,7 @@ import { AdminLoginModal } from './components/modals/AdminLoginModal';
 import { RestoreHistoryModal } from './components/modals/RestoreHistoryModal';
 import { LoginGate } from './components/LoginGate';
 import { NotificationBell } from './components/NotificationBell';
+import { KpiView } from './components/KpiView';
 
 const AppContent: React.FC = () => {
   const { activeTab, realtimeNotice } = useBorrow();
@@ -69,11 +71,13 @@ const AppContent: React.FC = () => {
         <main className="flex-1 p-4 md:p-8 pb-28 lg:pb-12 max-w-7xl w-full mx-auto animate-fade-in">
           {activeTab === 'home' && <HomeOverview />}
           {activeTab === 'attendance' && <AttendanceView />}
+          {activeTab === 'kpi' && <KpiView />}
           {activeTab === 'calendar' && <CalendarView />}
           {activeTab === 'catalog' && <EquipmentCatalog />}
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'news' && <NewsView />}
           {activeTab === 'admin' && <AdminDashboard />}
+          {activeTab === 'org' && <OrgChartView />}
         </main>
 
         {/* Footer */}
