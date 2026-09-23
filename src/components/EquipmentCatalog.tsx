@@ -17,7 +17,6 @@ export const EquipmentCatalog: React.FC = () => {
     setIsCartOpen,
     isAdminLoggedIn,
     setActiveTab,
-    setShowAdminLoginModal,
     refreshData,
     isFirebaseConnected
   } = useBorrow();
@@ -119,25 +118,7 @@ export const EquipmentCatalog: React.FC = () => {
           </button>
 
           {/* Admin Management Quick Action */}
-          {isAdminLoggedIn ? (
-            <button
-              onClick={() => setActiveTab('admin')}
-              className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 transition shadow-sm"
-              title="ไปที่หน้าจัดการคลังอุปกรณ์หลังบ้าน"
-            >
-              <Plus className="w-4 h-4 text-emerald-600" />
-              <span>จัดการคลังอุปกรณ์ (Admin)</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => setShowAdminLoginModal(true)}
-              className="bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-400 text-slate-700 font-semibold px-3.5 py-2 rounded-xl text-xs flex items-center gap-2 transition shadow-sm"
-              title="เข้าสู่ระบบ Admin เพื่อเพิ่ม ลบ หรือแก้ไขอุปกรณ์"
-            >
-              <ShieldCheck className="w-4 h-4 text-slate-600" />
-              <span>เข้าสู่ระบบ Admin</span>
-            </button>
-          )}
+         
 
           {/* Period Picker Header Box */}
           <div className="bg-white border border-slate-200 rounded-xl p-2.5 text-xs flex items-center gap-3 shadow-sm">
