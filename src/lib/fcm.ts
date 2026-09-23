@@ -1,10 +1,11 @@
 import { getMessaging, getToken, isSupported } from 'firebase/messaging';
-import { app, db, doc, setDoc } from './firebase';
+import { app, db } from './firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
-// ⚠️ สำคัญมาก: นำ Key pair จาก Firebase Console -> Project Settings -> Cloud Messaging -> Web Push certificates มาใส่ตรงนี้
+// Web Push VAPID Key ที่ระบุ
 const VAPID_KEY = 'BPs-vFUBoL88KhjYoiNOHHY2MyojGj-ocLM-GFm_PQF68W0CdX5ABsq6hGLCfBRg6PmPfU5Vc5-lEixq3ZHodtU';
 
-export const registerPushNotification = async (userId: string, role: 'admin' | 'user') => {
+export const registerPushNotification = async (userIdentifier: string, role: 'admin' | 'user') => {
   try {
     const supported = await isSupported();
     if (!supported) {
@@ -23,7 +24,7 @@ export const registerPushNotification = async (userId: string, role: 'admin' | '
     const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
     await navigator.serviceWorker.ready;
 
-    // 3. ดึง Device Token จาก Google FCM
+    // 3. ขอรับ FCM Device Token
     const messaging = getMessaging(app);
     const token = await getToken(messaging, {
       vapidKey: VAPID_KEY,
@@ -31,22 +32,24 @@ export const registerPushNotification = async (userId: string, role: 'admin' | '
     });
 
     if (!token) {
-      alert('ไม่สามารถสร้าง FCM Token ได้ กรุณาตรวจสอบ VAPID Key');
+      alert('ไม่สามารถสร้าง FCM Token ได้ กรุณาตรวจสอบการตั้งค่าเครือข่าย');
       return null;
     }
 
-    console.log('FCM Token Generated:', token);
+    // 4. สร้าง Document ID ที่ระบุตัวตนแยกตามบัญชีผู้ใช้และอุปกรณ์
+    const cleanDocId = `${encodeURIComponent(userIdentifier)}_${token.slice(-15)}`;
 
-    // 4. บันทึก Token ลง Firestore (ใช้ db ที่ชี้ไป Database ID ที่ถูกต้อง)
-    await setDoc(doc(db, 'edtech_fcm_tokens', token), {
+    // 5. บันทึกลง Firestore คอลเลกชัน edtech_fcm_tokens
+    await setDoc(doc(db, 'edtech_fcm_tokens', cleanDocId), {
       token: token,
-      userId: userId || 'anonymous',
-      role: role || 'user',
+      userIdentifier: userIdentifier,
+      userId: userIdentifier,
+      role: role,
       updatedAt: new Date().toISOString(),
       userAgent: navigator.userAgent,
     }, { merge: true });
 
-    alert('✅ ลงทะเบียนรับการแจ้งเตือนบนอุปกรณ์นี้สำเร็จ!');
+    alert('✅ ลงทะเบียนรับการแจ้งเตือนสำหรับบัญชีนี้สำเร็จ!');
     return token;
   } catch (error: any) {
     console.error('FCM Registration Error:', error);

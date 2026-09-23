@@ -254,7 +254,8 @@ export const DashboardView: React.FC = () => {
           )}
 
           {/* Refresh / Sync Firebase Button */}
-          <button
+          {isAdminLoggedIn && (
+            <button
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing}
@@ -264,9 +265,10 @@ export const DashboardView: React.FC = () => {
             <RotateCcw className={`w-3.5 h-3.5 text-blue-600 ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'กำลังดึง...' : 'ดึงจาก Firebase'}</span>
           </button>
-
+)}
           {/* Restore History Button */}
-          <button
+          {isAdminLoggedIn && (
+            <button
             type="button"
             onClick={() => setShowRestoreHistoryModal(true)}
             className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-400 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-sm"
@@ -280,6 +282,7 @@ export const DashboardView: React.FC = () => {
             )}
           </button>
 
+          )}
           {/* Clear History Button */}
           {totalRequests > 0 && (
             <button
